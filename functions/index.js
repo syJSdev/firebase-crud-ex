@@ -37,3 +37,52 @@ exports.add = functions.https.onRequest(async (req, res) => {
     res.status(404).send("Unimplemented api request call");
   }
 });
+
+exports.get = functions.https.onRequest(async (req, res) => {
+  if(req.method === 'GET') {
+    try {
+      const docId = req.query.id;
+      console.log("get video request: ", docId);
+
+      const result = await admin.firestore().collection('films').doc(docId).get();
+      if(!result.exists) {
+        res.status(404).send("Not found document with ID: " + docId);
+      } else {
+        res.json({
+          status: 1,
+          data: result.data(),
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Internal server error");
+    }
+  } else {
+    res.status(404).send("Unimplemented api request call");
+  }
+});
+
+exports.getAll = functions.https.onRequest(async (req, res) => {
+  if(req.method === 'GET') {
+    try {
+      console.log("get all video request");
+
+      const result = await admin.firestore().collection("films").get();
+      const ret = await admin.firestore().collection('stats').doc("count").get();
+      const total = ret.exists ? ret.data().total : 0;
+      res.json({
+        status: 1,
+        data: result.docs.map((doc) => {
+          const data = doc.data();
+          return Object.assign(data, { id: doc.id });
+        }),
+        totalCount: total,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Internal server error");
+    }
+  } else {
+    res.status(404).send("Unimplemented api request call");
+  }
+});
