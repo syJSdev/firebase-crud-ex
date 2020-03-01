@@ -86,3 +86,33 @@ exports.getAll = functions.https.onRequest(async (req, res) => {
     res.status(404).send("Unimplemented api request call");
   }
 });
+
+exports.remove = functions.https.onRequest(async (req, res) => {
+  if(req.method === 'DELETE') {
+    try {
+      const docId = req.query.id;
+      console.log("delete video request: ", docId);
+
+      const result = await admin.firestore().collection('films').doc(docId).get();
+      if(!result.exists) {
+        res.status(404).send("Not found document with id : " + docId);
+      } else {
+        await admin.firestore().collection('films').doc(docId).delete();
+        
+        const film_collection = await admin.firestore().collection('films').get();
+        await admin.firestore().collection('stats').doc("count").set({ total: film_collection.docs.length });
+        console.info("total count increase: ", film_collection.docs.length);
+
+        res.json({
+          status: 1,
+          message: `Video with ID: ${req.query.id} deleted.`,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Internal server error");
+    }
+  } else {
+    res.status(404).send("Unimplemented api request call");
+  }
+});
